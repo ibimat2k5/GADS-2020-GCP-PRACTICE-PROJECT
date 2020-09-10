@@ -1,0 +1,12 @@
+AK8S-05 Upgrading Kubernetes Engine Clusters
+
+Task 1. Deploy a GKE cluster
+gcloud container clusters create cluster-1 --zone us-central1-c --version 1.15.12-gke.2
+
+Task 2: Upgrade your GKE cluster
+A. Upgrade your GKE cluster
+gcloud container clusters upgrade cluster-1 --master --zone us-central1-c --cluster-version 1.16.13-gke.400
+
+B. Upgrade your GKE node-pool
+gcloud container clusters upgrade  cluster-1 --node-pool=default-pool --zone us-central1-c --cluster-version 1.16.13-gke.400
+

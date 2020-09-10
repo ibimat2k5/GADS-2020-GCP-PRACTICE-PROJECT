@@ -1,0 +1,38 @@
+Task 1 : Verify that internal ip of the VMs created in 2 different VPCs cannot be reached from each other
+ssh into server 1 and ping internal ip of server 2
+	ping -c 3 <Enter server-2's internal IP address here>
+sshh into server 2 and ping internal ip of server 1
+	ping -c 3 <Enter server-1's internal IP address here>
+Ping failure received in both directions
+
+
+Task 2: Create the VPN gateways and tunnels
+a: create static external addresses
+gcloud compute addresses create vpn-network-1 --region=us-central1
+gcloud compute addresses create vpn-network-2 --region=europe-west1
+
+
+b: create vpn-1 gateway and tunnel 1 t0 2
+gcloud compute target-vpn-gateways create "vpn-1-static-ip" --region "us-central1" --network "vpn-network-1"
+gcloud compute forwarding-rules create "vpn-1-static-ip-rule-esp" --region "us-central1" --address "34.122.124.187" --ip-protocol "ESP" --target-vpn-gateway "vpn-1-static-ip"
+gcloud compute forwarding-rules create "vpn-1-static-ip-rule-udp500" --region "us-central1" --address "34.122.124.187" --ip-protocol "UDP" --ports "500" --target-vpn-gateway "vpn-1-static-ip"
+gcloud compute forwarding-rules create "vpn-1-static-ip-rule-udp4500" --region "us-central1" --address "34.122.124.187" --ip-protocol "UDP" --ports "4500" --target-vpn-gateway "vpn-1-static-ip"
+gcloud compute vpn-tunnels create "tunnel1to2" --region "us-central1" --peer-address "34.78.255.252" --shared-secret "gcprocks" --ike-version "2" --local-traffic-selector "0.0.0.0/0" --target-vpn-gateway "vpn-1-static-ip"
+gcloud compute routes create "tunnel1to2-route-1" --network "vpn-network-1" --next-hop-vpn-tunnel "tunnel1to2" --next-hop-vpn-tunnel-region "us-central1" --destination-range "10.1.3.0/24"
+
+
+c: create vpn-2 gateway and tunnel 2to1
+gcloud compute target-vpn-gateways create "vpn-2" --region "europe-west1" --network "vpn-network-2"
+gcloud compute forwarding-rules create "vpn-2-rule-esp" --region "europe-west1" --address "34.78.255.252" --ip-protocol "ESP" --target-vpn-gateway "vpn-2"
+gcloud compute forwarding-rules create "vpn-2-rule-udp500" --region "europe-west1" --address "34.78.255.252" --ip-protocol "UDP" --ports "500" --target-vpn-gateway "vpn-2"
+gcloud compute forwarding-rules create "vpn-2-rule-udp4500" --region "europe-west1" --address "34.78.255.252" --ip-protocol "UDP" --ports "4500" --target-vpn-gateway "vpn-2"
+gcloud compute vpn-tunnels create "tunnel2to1" --region "europe-west1" --peer-address "34.122.124.187" --shared-secret "gcprocks" --ike-version "2" --local-traffic-selector "0.0.0.0/0" --target-vpn-gateway "vpn-2"
+gcloud compute routes create "tunnel2to1-route-1" --network "vpn-network-2" --next-hop-vpn-tunnel "tunnel2to1" --next-hop-vpn-tunnel-region "europe-west1" --destination-range "10.5.4.0/24"
+
+Task 3: Verify VPN connectivity
+Now verify that server 1 can ping server 2 internal ip adrress and vice versa
+1 to 2 internal
+ping -c 3 10.1.3.2
+2 to 1 internal
+ping -c 3 10.5.4.2
+Pings are successfull in both direction
